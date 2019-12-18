@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[109]:
+# In[66]:
 
 
 # Problem Set 2, hangman.py
 # Name: Pavlovska Kate
-# Collaborators:NONE
+# Collaborators: None
 # Time spent: ~ 10 - 12 hrs
 
 # Hangman Game
@@ -19,6 +19,8 @@ import random
 import re
 
 WORDLIST_FILENAME = "words.txt"
+set_with_repeated = []
+SET_WITH_USED_LETTERS = []
 
 
 def load_words():
@@ -38,17 +40,13 @@ def choose_word(wordlist):
 
 
 def is_word_guessed(secret_word, letters_guessed):
-    values, tmp_counter = set(secret_word), 0
-    for tmp_letter_guessed in values:
-        if tmp_letter_guessed in letters_guessed:
-            tmp_counter += 1
-    if tmp_counter == len(values):
-        return True
-    return False
+    values = set(secret_word)
+    list_of_bools = map(lambda letter: True if letter in letters_guessed else False, values)
+    return all(list(list_of_bools))
 
 
 def get_guessed_word(secret_word, letters_guessed):
-    tmp_string_unknown, set_value = ['_' for tmp in range(0, len(secret_word), 1)], list(secret_word)
+    tmp_string_unknown, set_value = ['_ ' for tmp in secret_word], list(secret_word)
     for tmp in range(0, len(set_value), 1):
         if set_value[tmp] in letters_guessed:
             tmp_string_unknown[tmp] = set_value[tmp]
@@ -57,76 +55,75 @@ def get_guessed_word(secret_word, letters_guessed):
 
 
 def get_available_letters(letters_guessed):
-    all_available_letters, letters = list('abcdefghijklmnopqrstuvwxyz'), []
+    all_available_letters = list('abcdefghijklmnopqrstuvwxyz')
     for tmp in all_available_letters:
-        if tmp not in letters_guessed:
-            letters.append(tmp)
-    return ' '.join(letters)
+        if tmp in letters_guessed:
+            all_available_letters.remove(tmp)
+    return ' '.join(all_available_letters)
+
+
+def value_func(warnings):
+    try:
+        global set_with_repeated, SET_WITH_USED_LETTERS
+        letter_to_join = input('Print your letter:')[0]
+        if letter_to_join in SET_WITH_USED_LETTERS:
+            warnings -= 1
+            print('Warning, you used this letter')
+            set_with_repeated.append(letter_to_join)
+            return value_func(warnings)
+        elif letter_to_join.istitle():
+            letter_to_join = letter_to_join.lower()
+        elif not letter_to_join.isalpha():
+            print('Invalid input')
+            return value_func(warnings)
+    except IndexError:
+        print('Invalid length')
+        return value_func(warnings)
+
+    return letter_to_join, warnings
 
 
 def hangman(secret_word):
-    word = ''.join(['_' for tmp in range(0, len(secret_word))])
-    counters, warnings, set_with_used_letters = 6, 3, []
+    global SET_WITH_USED_LETTERS, set_with_repeated
+    word = '_' * len(secret_word)
+    counter_of_trials, warnings = 6, 3
 
     print("Welcome to Hangman")
     print('I am thinking of a word that is', len(secret_word), 'letters long.')
-    print('You have counters', counters, 'guesses left.')
-    tmp_variants, letters_to_join = input('Print your letters with space:').split(' '), []
+    print('You have counters', counter_of_trials, 'guesses left.')
+    print('Available letters:', get_available_letters(SET_WITH_USED_LETTERS), '\n')
 
-    for tmp in tmp_variants:
-        if len(tmp) == 1 and not tmp.istitle() and tmp.isalpha():
-            letters_to_join.append(tmp)
-    if len(letters_to_join) > 5:
-        letter_to_join = letters_to_join[0:5]
-    set_with_used_letters = list(set(set_with_used_letters + letters_to_join))
-    print(get_guessed_word(secret_word, set_with_used_letters))
-    print('Available letters:', get_available_letters(set_with_used_letters), '\n')
-    while counters > 0:
-        counters -= 1
+    while counter_of_trials > 0:
         guested = len(secret_word)
-
-        def value_func(warnings):
-            try:
-                letter_to_join = input('Print your letter:')[0]
-                if letter_to_join in set_with_used_letters:
-                    warnings -= 1
-                    print('Warning, you used this letter')
-                    return value_func(warnings)
-
-                elif letter_to_join.istitle() or not letter_to_join.isalpha():
-                    print('Invalid input')
-                    return value_func(warnings)
-            except IndexError:
-                print('Invalid length')
-                return value_func(warnings)
-
-            return letter_to_join, warnings
-
         letter_to_join, warnings = value_func(warnings)
-        set_with_used_letters = list(set(set_with_used_letters + list(letter_to_join)))
-        word = get_guessed_word(secret_word, set_with_used_letters)
+        if letter_to_join not in secret_word:
+            print('Your guess is wrong')
+            counter_of_trials -= 1
+        SET_WITH_USED_LETTERS = list(set(SET_WITH_USED_LETTERS + list(letter_to_join)))
+        word = get_guessed_word(secret_word, SET_WITH_USED_LETTERS)
         print(word)
-        for tmp in word:
-            if tmp != '_':
-                guested -= 1
-        if guested == 0:
+
+        if is_word_guessed(secret_word, word):
             break
 
-        if warnings < 3:
-            print('You have only', warnings, 'wanrnings left')
+        if 0 < warnings < 3:
+            print('You have only', warnings, 'warnings left')
         elif warnings < 1:
-            break
+            counter_of_trials -= 1
 
         print('I am thinking of a word that is', len(secret_word), 'letters long.')
-        print('You have counters', counters, 'guesses left.')
-        print('Available letters:', get_available_letters(set_with_used_letters))
+        print('You have counters', counter_of_trials, 'guesses left.')
+        print('Available letters:', get_available_letters(SET_WITH_USED_LETTERS))
         print('---------------------------------------')
-    if '_' not in word:
+
+    if is_word_guessed(secret_word, word):
         print('Congratulations, you won!')
     else:
         print('The right word is', secret_word)
-    print('Your total score for this game is:', len(set_with_used_letters) * counters)
-    return len(set_with_used_letters) * counters
+    print('Your total score for this game is:',
+          (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials)
+
+    return (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials
 
 
 # When you've completed your hangman function, scroll down to the bottom
@@ -150,100 +147,98 @@ def match_with_gaps(my_word, other_word):
     if len(my_word) != len(other_word):
         return False
     for tmp in range(0, len(other_word), 1):
-        if other_word[tmp] != my_word[tmp] and my_word[tmp] != '_':
+        if (other_word[tmp] != my_word[tmp] and my_word[tmp] != '_') or (
+                other_word[tmp] != my_word[tmp] and my_word[tmp] == '_' and other_word[tmp] in my_word):
             return False
     return True
 
 
 def show_possible_matches(my_word):
-    inFile = open(WORDLIST_FILENAME, 'r')
-    # line: string
-    line = inFile.readline()
     # wordlist: list of strings
-    wordlist = line.split()
+    wordlist = lo()
     suitable_words = []
     for word in wordlist:
         regex = '^%s$' % my_word.replace("_", "[a-z]")
         if re.match(regex, word):
             suitable_words.append(word)
 
-    return suitable_words
+    print(suitable_words)
+    return 0
+
+
+def value_func_f(word, warnings):
+    try:
+        global set_with_repeated, SET_WITH_USED_LETTERS
+        letter_to_join = input('Print your letter:')[0]
+        if letter_to_join == '*':
+            print('Possible word matches are:', show_possible_matches(word))
+            return value_func_f(word, warnings)
+        if letter_to_join in SET_WITH_USED_LETTERS:
+            warnings -= 1
+            print('Warning, you used this letter')
+            set_with_repeated.append(letter_to_join)
+            return value_func_f(word, warnings)
+        elif letter_to_join.istitle():
+            letter_to_join = letter_to_join.lower()
+        elif not letter_to_join.isalpha():
+            print('Invalid input')
+            return value_func_f(word, warnings)
+    except IndexError:
+        print('Invalid length')
+        return value_func_f(word, warnings)
+    return letter_to_join, warnings
 
 
 def hangman_with_hints(secret_word):
-    word = ''.join(['_' for tmp in range(0, len(secret_word))])
-    counters, warnings, set_with_used_letters = 6, 3, []
-
+    global SET_WITH_USED_LETTERS, set_with_repeated
+    SET_WITH_USED_LETTERS.clear()
+    set_with_repeated.clear()
+    word = '_' * len(secret_word)
+    counter_of_trials, warnings = 6, 3
     print("Welcome to Hangman")
     print('I am thinking of a word that is', len(secret_word), 'letters long.')
-    print('You have counters', counters, 'guesses left.')
-    tmp_variants, letters_to_join = input('Print your letters with space:').split(' '), []
+    print('You have counters', counter_of_trials, 'guesses left.')
+    print('Available letters:', get_available_letters(SET_WITH_USED_LETTERS), '\n')
 
-    for tmp in tmp_variants:
-        if len(tmp) == 1 and not tmp.istitle() and tmp.isalpha():
-            letters_to_join.append(tmp)
-    if len(letters_to_join) > 5:
-        letter_to_join = letters_to_join[0:5]
-    set_with_used_letters = list(set(set_with_used_letters + letters_to_join))
-    print(get_guessed_word(secret_word, set_with_used_letters))
-    print('Available letters:', get_available_letters(set_with_used_letters), '\n')
-    while counters > 0:
-        counters -= 1
+    while counter_of_trials > 0:
         guested = len(secret_word)
-
-        def value_func(warnings):
-            try:
-                letter_to_join = input('Print your letter:')[0]
-                if letter_to_join == '*':
-                    print('Possible word matches are:', show_possible_matches(word))
-                    return value_func(warnings)
-
-                if letter_to_join in set_with_used_letters:
-                    warnings -= 1
-                    print('Warning, you used this letter')
-                    return value_func(warnings)
-
-                elif letter_to_join.istitle() or not letter_to_join.isalpha():
-                    print('Invalid input')
-                    return value_func(warnings)
-            except IndexError:
-                print('Invalid length')
-                return value_func(warnings)
-
-            return letter_to_join, warnings
-
-        letter_to_join, warnings = value_func(warnings)
-        set_with_used_letters = list(set(set_with_used_letters + list(letter_to_join)))
-        word = get_guessed_word(secret_word, set_with_used_letters)
+        word = get_guessed_word(secret_word, SET_WITH_USED_LETTERS)
+        letter_to_join, warnings = value_func_f(word, warnings)
+        if letter_to_join not in secret_word:
+            print('Your guess is wrong')
+            counter_of_trials -= 1
+        SET_WITH_USED_LETTERS = list(set(SET_WITH_USED_LETTERS + list(letter_to_join)))
+        word = get_guessed_word(secret_word, SET_WITH_USED_LETTERS)
         print(word)
-        for tmp in word:
-            if tmp != '_':
-                guested -= 1
-        if guested == 0:
+
+        if match_with_gaps(secret_word, word):
             break
-        if warnings < 1:
-            break
-        if warnings < 3:
-            print('You have only', warnings, 'wanrnings left')
+
+        if 0 < warnings < 3:
+            print('You have only', warnings, 'warnings left')
+        elif warnings < 1:
+            counter_of_trials -= 1
 
         print('I am thinking of a word that is', len(secret_word), 'letters long.')
-        print('You have counters', counters, 'guesses left.')
-        print('Available letters:', get_available_letters(set_with_used_letters))
+        print('You have counters', counter_of_trials, 'guesses left.')
+        print('Available letters:', get_available_letters(SET_WITH_USED_LETTERS))
         print('---------------------------------------')
-    if '_' not in word:
+
+    if is_word_guessed(secret_word, word):
         print('Congratulations, you won!')
     else:
         print('The right word is', secret_word)
-    print('Your total score for this game is:', len(set_with_used_letters) * counters)
-    return len(set_with_used_letters) * counters
+    print(SET_WITH_USED_LETTERS, set_with_repeated)
+    print('Your total score for this game is:',
+          (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials)
+
+    return (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials
 
 
 # When you've completed your hangman_with_hint function, comment the two similar
 # lines above that were used to run the hangman function, and then uncomment
 # these two lines and run this file to test!
 # Hint: You might want to pick your own secret_word while you're testing.
-
-
 if __name__ == "__main__":
     # pass
 
@@ -251,7 +246,7 @@ if __name__ == "__main__":
     # uncomment the following two lines.
     wordlist = load_words()
     secret_word = choose_word(wordlist)
-    hangman(secret_word)
+    # hangman(secret_word)
 
     ###############
 
