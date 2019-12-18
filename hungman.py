@@ -1,13 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[66]:
-
-
 # Problem Set 2, hangman.py
-# Name: Pavlovska Kate
+# Name: Павловська Катерина КМ-93
 # Collaborators: None
-# Time spent: ~ 10 - 12 hrs
+# Time spent: ~ 13 
 
 # Hangman Game
 # -----------------------------------
@@ -16,6 +10,7 @@
 # but you will have to know how to use the functions
 # (so be sure to read the docstrings!)
 import random
+import string
 import re
 
 WORDLIST_FILENAME = "words.txt"
@@ -55,10 +50,8 @@ def get_guessed_word(secret_word, letters_guessed):
 
 
 def get_available_letters(letters_guessed):
-    all_available_letters = list('abcdefghijklmnopqrstuvwxyz')
-    for tmp in all_available_letters:
-        if tmp in letters_guessed:
-            all_available_letters.remove(tmp)
+    all_available_letters = [letter for letter in list('abcdefghijklmnopqrstuvwxyz')
+                             if letter not in letters_guessed]
     return ' '.join(all_available_letters)
 
 
@@ -120,8 +113,8 @@ def hangman(secret_word):
         print('Congratulations, you won!')
     else:
         print('The right word is', secret_word)
-    print('Your total score for this game is:',
-          (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials)
+    print('Your total score for this game is:', (len(SET_WITH_USED_LETTERS) \
+                                                 - len(set_with_repeated)) * counter_of_trials)
 
     return (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials
 
@@ -144,22 +137,23 @@ def match_with_gaps(my_word, other_word):
         _ , and my_word and other_word are of the same length;
         False otherwise:
     '''
-    if len(my_word) != len(other_word):
+    my_word, other_word = [letter for letter in list(my_word) if letter != ' '], list(other_word)
+    if len(list(my_word)) != len(list(other_word)):
         return False
-    for tmp in range(0, len(other_word), 1):
-        if (other_word[tmp] != my_word[tmp] and my_word[tmp] != '_') or (
-                other_word[tmp] != my_word[tmp] and my_word[tmp] == '_' and other_word[tmp] in my_word):
+    for tmp in range(0, len(list(other_word)), 1):
+        if (other_word[tmp] != my_word[tmp] and my_word[tmp] != '_') or \
+                (other_word[tmp] != my_word[tmp] and my_word[tmp] == '_' and other_word[tmp] in my_word):
             return False
     return True
 
 
 def show_possible_matches(my_word):
-    # wordlist: list of strings
-    wordlist = lo()
+    wordlist = load_words()
     suitable_words = []
+    print(my_word)
     for word in wordlist:
-        regex = '^%s$' % my_word.replace("_", "[a-z]")
-        if re.match(regex, word):
+        #         regex = '^%s$' % my_word.replace("_ ", "[a-z]")
+        if match_with_gaps(my_word, word):
             suitable_words.append(word)
 
     print(suitable_words)
@@ -228,9 +222,8 @@ def hangman_with_hints(secret_word):
         print('Congratulations, you won!')
     else:
         print('The right word is', secret_word)
-    print(SET_WITH_USED_LETTERS, set_with_repeated)
-    print('Your total score for this game is:',
-          (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials)
+    print('Your total score for this game is:', (len(SET_WITH_USED_LETTERS) \
+                                                 - len(set_with_repeated)) * counter_of_trials)
 
     return (len(SET_WITH_USED_LETTERS) - len(set_with_repeated)) * counter_of_trials
 
@@ -246,12 +239,12 @@ if __name__ == "__main__":
     # uncomment the following two lines.
     wordlist = load_words()
     secret_word = choose_word(wordlist)
-    # hangman(secret_word)
+    hangman(secret_word)
 
     ###############
 
     # To test part 3 re-comment out the above lines and
     # uncomment the following two lines.
 
-    # secret_word = choose_word(wordlist)
+    secret_word = choose_word(wordlist)
     hangman_with_hints(secret_word)
